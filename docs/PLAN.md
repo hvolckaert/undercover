@@ -94,11 +94,11 @@ Replace the skeleton page with the UnderCover dashboard: Instrument Sans, Instru
 
 Why: the queue is the handlers' home screen, and building the shell first fixes the look for the claim page.
 
-- [ ] Vitest tests for the queue (renders claims and state counts from a mocked API) and the instructions page
-- [ ] In the browser via the Playwright MCP server, `http://localhost:5173` shows 25 claims, the counts by state, amounts like $420.00 and the brand fonts and colors, in light and dark mode
-- [ ] The instructions page shows the text of `backend/instructions.md` with no way to edit it
-- [ ] At phone width the queue has no horizontal page scroll
-- [ ] `npm run check:ts` passes with coverage at or above 80%
+- [x] Vitest tests for the queue (renders claims and state counts from a mocked API) and the instructions page
+- [x] In the browser via the Playwright MCP server, `http://localhost:5173` shows 25 claims, the counts by state, amounts like $420.00 and the brand fonts and colors, in light and dark mode
+- [x] The instructions page shows the text of `backend/instructions.md` with no way to edit it
+- [x] At phone width the queue has no horizontal page scroll
+- [x] `npm run check:ts` passes with coverage at or above 80%
 
 ## Phase 5: the claim page, live steps and sign-off
 

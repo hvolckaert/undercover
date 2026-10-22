@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("the dashboard shows the backend is up", async ({ page }) => {
+test("the dashboard shows the claims queue", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("Backend: up")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Claims queue" }),
+  ).toBeVisible();
 });
