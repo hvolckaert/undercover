@@ -81,12 +81,12 @@ Rebuild `agent/main.py`. Its tools call the API: `get_claim`, `get_policy`, `get
 
 Why this shape: the agent stays a thin loop over the API, so the backend's rules apply to it like anyone else, and later builds can grow its harness without touching the backend.
 
-- [ ] Agent tests with a stub model and the backend's `TestClient` (no model calls): a scripted run reads the claim, policy, customer and wording, records a decision and pays it; the steps appear in `list_steps` in order
-- [ ] A stub run that approves $1,250.00 and then calls `pay_claim` gets the refusal back as a tool result, the claim ends `waiting_for_signoff` and no payment exists
-- [ ] A test for `run_agent` with the runner stubbed: the claim goes `in_progress`, and a run that raises puts it back to `waiting` with an error step
-- [ ] A test asserts no agent tool or instruction mentions `data/evals`
-- [ ] With a real model (`MODEL_NAME=openrouter/free` or the default), `Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/claims/CLM-1001/run` leads to a decision on CLM-1001 with a payout, a reason and a policy section, and the steps show each tool call
-- [ ] `npm run check:python` passes
+- [x] Agent tests with a stub model and the backend's `TestClient` (no model calls): a scripted run reads the claim, policy, customer and wording, records a decision and pays it; the steps appear in `list_steps` in order
+- [x] A stub run that approves $1,250.00 and then calls `pay_claim` gets the refusal back as a tool result, the claim ends `waiting_for_signoff` and no payment exists
+- [x] A test for `run_agent` with the runner stubbed: the claim goes `in_progress`, and a run that raises puts it back to `waiting` with an error step
+- [x] A test asserts no agent tool or instruction mentions `data/evals`
+- [x] With a real model (`MODEL_NAME=openrouter/free` or the default), `Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/claims/CLM-1001/run` leads to a decision on CLM-1001 with a payout, a reason and a policy section, and the steps show each tool call
+- [x] `npm run check:python` passes
 
 ## Phase 4: the dashboard shell and the queue
 

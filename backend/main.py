@@ -5,10 +5,12 @@ import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
+from uuid import uuid4
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field, model_validator
 
+from agent import main as claim_agent
 from backend import db
 
 INSTRUCTIONS = Path(__file__).resolve().parent / "instructions.md"
@@ -184,11 +186,7 @@ def list_steps(claim_id: str, conn: Db) -> list[dict[str, Any]]:
 def record_step(claim_id: str, step: Step, conn: Db) -> dict[str, str]:
     """Record one step the agent took on a claim."""
     claim_row(conn, claim_id)
-    conn.execute(
-        "INSERT INTO steps (claim_id, thread_id, kind, content, created_at)"
-        " VALUES (?, ?, ?, ?, ?)",
-        (claim_id, step.thread_id, step.kind, step.content, now()),
-    )
+    add_step(conn, claim_id, step)
     return {"status": "recorded"}
 
 
@@ -241,3 +239,46 @@ def sign_off(claim_id: str, request: SignOff, conn: Db) -> dict[str, str]:
     )
     pay(conn, claim_id, json.loads(row["decision"])["payout"])
     return {"status": "decided"}
+
+
+def add_step(conn: sqlite3.Connection, claim_id: str, step: Step) -> None:
+    """Store one step the agent took on a claim."""
+    conn.execute(
+        "INSERT INTO steps (claim_id, thread_id, kind, content, created_at)"
+        " VALUES (?, ?, ?, ?, ?)",
+        (claim_id, step.thread_id, step.kind, step.content, now()),
+    )
+
+
+def work_claim(claim_id: str, thread_id: str) -> None:
+    """Run the agent on a claim; put it back in the queue if no decision comes."""
+    try:
+        claim_agent.run(claim_id, thread_id)
+        problem = "The agent finished without recording a decision."
+    except Exception as error:
+        problem = f"The agent stopped with an error: {error}"
+    conn = db.connect()
+    with conn:
+        if claim_row(conn, claim_id)["status"] == "in_progress":
+            add_step(
+                conn, claim_id, Step(thread_id=thread_id, kind="error", content=problem)
+            )
+            conn.execute(
+                "UPDATE claims SET status = 'waiting' WHERE claim_id = ?", (claim_id,)
+            )
+    conn.close()
+
+
+@app.post("/api/claims/{claim_id}/run", operation_id="run_agent")
+def run_agent(claim_id: str, tasks: BackgroundTasks, conn: Db) -> dict[str, str]:
+    """Start the UnderCover Agent on a waiting claim."""
+    if claim_row(conn, claim_id)["status"] != "waiting":
+        raise HTTPException(409, f"Claim {claim_id} is not waiting")
+    thread_id = uuid4().hex
+    conn.execute(
+        "UPDATE claims SET status = 'in_progress', thread_id = ? WHERE claim_id = ?",
+        (thread_id, claim_id),
+    )
+    conn.commit()
+    tasks.add_task(work_claim, claim_id, thread_id)
+    return {"status": "in_progress", "thread_id": thread_id}
