@@ -81,7 +81,12 @@ def test_run_decides_and_pays():
         "reply",
     ]
     assert steps[0]["content"] == 'get_claim {"claim_id": "CLM-1001"}'
-    assert steps[4]["content"].startswith("get_claim: {")
+    assert {s["content"].split(":")[0] for s in steps[4:8]} == {
+        "get_claim",
+        "get_policy",
+        "get_customer",
+        "get_policy_wording",
+    }
     assert {s["thread_id"] for s in steps} == {"thread-1"}
 
 

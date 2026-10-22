@@ -113,15 +113,15 @@ Why: this is where handlers check the agent's work, so the decision, its reasons
 
 ## Phase 6: end-to-end tests and handover
 
-Playwright tests that run against a fresh database on their own ports (backend 8001, dashboard 5174, with the Vite proxy target from an environment variable), so they never touch the dev database or clash with other software on 8000 and 5173. The tests stand in for the agent by calling its API operations directly: they record steps and a decision, then check the dashboard. Update `docs/STATUS.md` with what's built and how to run it, and add `backend/undercover.db` to `.gitignore`.
+Playwright tests that run against a fresh database on their own ports (backend 8001, dashboard 5174, with the Vite proxy target from an environment variable), so they never touch the dev database or clash with other software on 8000 and 5173. The tests stand in for the agent by calling its API operations directly: they record steps and a decision, then check the dashboard. Update `docs/STATUS.md` with what's built and how to run it. (`backend/undercover.db` is already kept out of git by the `*.db` rule in `.gitignore`.)
 
 Why: the e2e tests prove the screens and the rules work together, and do it without a model.
 
-- [ ] E2E: the queue shows 25 claims and the state counts
-- [ ] E2E: a claim with recorded steps and a decline shows them on its page, and the queue shows it decided
-- [ ] E2E: a claim approved at $1,250.00 shows the payment held; a direct `pay_claim` call returns 409; signing off in the UI moves it to decided with the payment
-- [ ] E2E: the instructions page shows the agent's instructions
-- [ ] `npm run e2e` passes, and `npm run dev` afterwards still shows the dev database untouched
-- [ ] With a real model, the agent decides at least three claims of different types from the dashboard, each with a payout, a reason and a policy section
-- [ ] `docs/STATUS.md` describes the pilot and how to run it
-- [ ] `npm run check` passes
+- [x] E2E: the queue shows 25 claims and the state counts
+- [x] E2E: a claim with recorded steps and a decline shows them on its page, and the queue shows it decided
+- [x] E2E: a claim approved at $1,250.00 shows the payment held; a direct `pay_claim` call returns 409; signing off in the UI moves it to decided with the payment
+- [x] E2E: the instructions page shows the agent's instructions
+- [x] `npm run e2e` passes, and `npm run dev` afterwards still shows the dev database untouched
+- [x] With a real model, the agent decides at least three claims of different types from the dashboard, each with a payout, a reason and a policy section
+- [x] `docs/STATUS.md` describes the pilot and how to run it
+- [x] `npm run check` passes
