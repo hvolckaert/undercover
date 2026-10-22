@@ -106,10 +106,10 @@ The claim page shows the claim in full (story, items, documents), the policy and
 
 Why: this is where handlers check the agent's work, so the decision, its reasons and how it got there sit together.
 
-- [ ] Vitest tests for the claim page in each state, the step list updating while polling, and the sign-off control
-- [ ] In the browser via the Playwright MCP server: running the agent on CLM-1001 shows steps appearing while it works, then the decision, reason and policy section
-- [ ] In the browser, a claim approved over $1,000 shows the payment held, and signing off as Dana Whitfield moves it to decided with the payment shown
-- [ ] `npm run check:ts` passes
+- [x] Vitest tests for the claim page in each state, the step list updating while polling, and the sign-off control
+- [x] In the browser via the Playwright MCP server: running the agent on CLM-1001 shows steps appearing while it works, then the decision, reason and policy section
+- [x] In the browser, a claim approved over $1,000 shows the payment held, and signing off as Dana Whitfield moves it to decided with the payment shown
+- [x] `npm run check:ts` passes
 
 ## Phase 6: end-to-end tests and handover
 

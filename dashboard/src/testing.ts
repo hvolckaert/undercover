@@ -29,7 +29,8 @@ export const claims: ClaimSummary[] = [
 export type Routes = Record<string, unknown>;
 
 export function mockApi(routes: Routes) {
-  const fetchMock = vi.fn((path: string) => {
+  const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+    const path = init?.method === "POST" ? `POST ${url}` : url;
     if (!(path in routes)) {
       return Promise.resolve(
         new Response(JSON.stringify({ detail: `No route ${path}` }), {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ClaimPage } from "./ClaimPage";
 import { Instructions } from "./Instructions";
 import { Queue } from "./Queue";
 
@@ -19,6 +20,7 @@ function useHash(): string {
 export function App() {
   const hash = useHash();
   const onInstructions = hash === "#/instructions";
+  const claimId = /^#\/claims\/([\w-]+)$/.exec(hash)?.[1];
 
   return (
     <div className="shell">
@@ -39,7 +41,11 @@ export function App() {
           </a>
         </nav>
       </header>
-      <main>{onInstructions ? <Instructions /> : <Queue />}</main>
+      <main>
+        {onInstructions && <Instructions />}
+        {claimId && <ClaimPage key={claimId} claimId={claimId} />}
+        {!onInstructions && !claimId && <Queue />}
+      </main>
     </div>
   );
 }

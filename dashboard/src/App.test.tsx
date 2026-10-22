@@ -61,3 +61,12 @@ it("follows the hash", async () => {
   window.dispatchEvent(new HashChangeEvent("hashchange"));
   expect(await screen.findByText("Hi")).toBeDefined();
 });
+
+it("opens a claim from the hash", async () => {
+  mockApi({});
+  window.location.hash = "#/claims/CLM-1001";
+  render(<App />);
+  expect(
+    await screen.findByText(/Could not load the claim: Error: No route/),
+  ).toBeDefined();
+});

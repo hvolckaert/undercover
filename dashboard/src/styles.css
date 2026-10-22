@@ -238,3 +238,147 @@ td.number {
   margin: 0;
   font-family: var(--sans);
 }
+
+h3 {
+  font-size: 0.95rem;
+  margin: 16px 0 4px;
+}
+
+button,
+select {
+  font: inherit;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+
+button {
+  background: var(--sea-green);
+  color: var(--midnight);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+select {
+  background: var(--subtle);
+  color: var(--ink);
+}
+
+.claim-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.claim-head h1 {
+  font-size: 1.75rem;
+}
+
+.lead {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  margin: 4px 0 20px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.plain {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--subtle);
+  overflow-wrap: anywhere;
+}
+
+.step .mono {
+  white-space: normal;
+}
+
+.step pre {
+  white-space: pre-wrap;
+  margin: 8px 0 0;
+}
+
+.step-kind {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.step-reply .step-kind {
+  color: var(--accent-text);
+}
+
+.step-error {
+  background: var(--raspberry);
+  color: #ffffff;
+}
+
+.step-error .step-kind {
+  color: #ffffff;
+}
+
+.document {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--subtle);
+  margin-bottom: 8px;
+}
+
+.document summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.document p {
+  margin: 8px 0 0;
+}
