@@ -68,12 +68,12 @@ Add the write operations: `record_step`, `list_steps`, `record_decision`, `pay_c
 
 Why here: the rules belong to the backend, so they are built and tested before an agent exists to break them.
 
-- [ ] Tests cover every state change in the table, and each refusal of `pay_claim` and `sign_off`
-- [ ] A test approves a $1,250.00 payout: the claim goes to `waiting_for_signoff`, `pay_claim` for $1,250.00 returns 409 and no payment exists; after `sign_off` by HND-01 the claim is `decided` and one $1,250.00 payment exists
-- [ ] A test approves a $420.00 payout: the claim is `decided` and `pay_claim` for $420.00 succeeds once, then returns 409 the second time
-- [ ] A decline or refer with a payout above 0 is rejected (422)
-- [ ] `GET /api/claims/{claim_id}` now includes the decision, the sign-off and the payment
-- [ ] `npm run check:python` passes with coverage at or above 80%
+- [x] Tests cover every state change in the table, and each refusal of `pay_claim` and `sign_off`
+- [x] A test approves a $1,250.00 payout: the claim goes to `waiting_for_signoff`, `pay_claim` for $1,250.00 returns 409 and no payment exists; after `sign_off` by HND-01 the claim is `decided` and one $1,250.00 payment exists
+- [x] A test approves a $420.00 payout: the claim is `decided` and `pay_claim` for $420.00 succeeds once, then returns 409 the second time
+- [x] A decline or refer with a payout above 0 is rejected (422)
+- [x] `GET /api/claims/{claim_id}` now includes the decision, the sign-off and the payment
+- [x] `npm run check:python` passes with coverage at or above 80%
 
 ## Phase 3: the UnderCover Agent
 
