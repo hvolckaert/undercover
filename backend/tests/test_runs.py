@@ -154,9 +154,12 @@ def test_claims_refused_on_a_stopped_run(new_run):
 @pytest.mark.parametrize(
     ("queue", "problem"),
     [
-        (lambda run_id: "", "The agent ended the run without finishing it."),
         (
-            lambda run_id: 1 / 0,
+            lambda run_id, max_claims: "",
+            "The agent ended the run without finishing it.",
+        ),
+        (
+            lambda run_id, max_claims: 1 / 0,
             "The run stopped with an error: division by zero",
         ),
     ],

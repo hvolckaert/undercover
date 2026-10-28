@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field, model_validator
 from agent import main as claim_agent
 from backend import db
 
-INSTRUCTIONS = Path(__file__).resolve().parent / "instructions" / "claim.md"
+INSTRUCTIONS = Path(__file__).resolve().parent / "instructions"
 DOCUMENTS = {"policy_wording": "policy_wording.md", "claims_manual": "claims_manual.md"}
 MAX_ATTEMPTS = 2
 
@@ -164,6 +164,7 @@ def list_claims(conn: Db) -> list[dict[str, Any]]:
                 "submitted_on": body["submitted_on"],
                 "amount_claimed": body["amount_claimed"],
                 "status": row["status"],
+                "attempts": row["attempts"],
                 "decision": decision["decision"] if decision else None,
                 "payout": decision["payout"] if decision else None,
             }
@@ -254,8 +255,11 @@ def read_section(document: str, section: str) -> dict[str, str]:
 
 @app.get("/api/instructions", operation_id="get_instructions")
 def get_instructions() -> dict[str, str]:
-    """Get the UnderCover Agent's instructions."""
-    return {"instructions": INSTRUCTIONS.read_text(encoding="utf-8")}
+    """Get the agent's instructions for running the queue and for working a claim."""
+    return {
+        agent: (INSTRUCTIONS / f"{agent}.md").read_text(encoding="utf-8")
+        for agent in ("queue", "claim")
+    }
 
 
 @app.get("/api/handlers", operation_id="list_handlers")
@@ -449,26 +453,12 @@ def release_claim(claim_id: str, request: Release, conn: Db) -> dict[str, str]:
     return {"status": release(conn, claim_id, request.thread_id, request.problem)}
 
 
-def work_claim(claim_id: str, thread_id: str) -> None:
-    """Run the agent on a claim; release it if no decision comes."""
-    try:
-        claim_agent.run_claim(claim_id, thread_id)
-        problem = "The agent finished without recording a decision."
-    except Exception as error:
-        problem = f"The agent stopped with an error: {error}"
-    conn = db.connect()
-    with conn:
-        if claim_row(conn, claim_id)["status"] == "in_progress":
-            release(conn, claim_id, thread_id, problem)
-    conn.close()
-
-
 @app.post("/api/claims/{claim_id}/run", operation_id="run_agent")
 def run_agent(claim_id: str, tasks: BackgroundTasks, conn: Db) -> dict[str, str]:
     """Start the UnderCover Agent on a waiting claim."""
     thread_id = start(conn, claim_id, None)
     conn.commit()
-    tasks.add_task(work_claim, claim_id, thread_id)
+    tasks.add_task(claim_agent.work, claim_id, thread_id)
     return {"status": "in_progress", "thread_id": thread_id}
 
 
@@ -477,10 +467,10 @@ def run_json(run: sqlite3.Row) -> dict[str, Any]:
     return {**dict(run), "todos": json.loads(run["todos"])}
 
 
-def work_queue(run_id: str) -> None:
+def work_queue(run_id: str, max_claims: int) -> None:
     """Run the agent on the queue; stop the run if it ends without finishing."""
     try:
-        claim_agent.run_queue(run_id)
+        claim_agent.run_queue(run_id, max_claims)
         problem = "The agent ended the run without finishing it."
     except Exception as error:
         problem = f"The run stopped with an error: {error}"
@@ -506,7 +496,7 @@ def start_run(request: NewRun, tasks: BackgroundTasks, conn: Db) -> dict[str, An
         (run_id, request.max_claims, now()),
     )
     conn.commit()
-    tasks.add_task(work_queue, run_id)
+    tasks.add_task(work_queue, run_id, request.max_claims)
     return run_json(run_row(conn, run_id))
 
 

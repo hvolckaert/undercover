@@ -72,8 +72,10 @@ def test_get_customer():
 
 
 def test_instructions():
-    instructions = client.get("/api/instructions").json()["instructions"]
-    assert "UnderCover Agent" in instructions
+    instructions = client.get("/api/instructions").json()
+    assert set(instructions) == {"queue", "claim"}
+    assert "running the claims queue" in instructions["queue"]
+    assert "You decide one claim" in instructions["claim"]
     assert client.get("/api/policy-wording").status_code == 404
 
 

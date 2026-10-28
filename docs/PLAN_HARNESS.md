@@ -112,14 +112,14 @@ Add `run_queue(run_id)` with its four tools and `backend/instructions/queue.md`:
 
 Why this shape: the queue agent organizes the work and the code around it keeps that safe. A bad claim costs one line in the queue agent's history and nothing else.
 
-- [ ] Test: a stub queue run with `max_claims` 3 works three claims, each with its own thread id and its steps on its own claim, and leaves the other 22 waiting
-- [ ] Test (the to-do list): the stored list goes through `to_do`, `in_progress` and `done` for each claim as the stub run goes on, and the run ends `finished` with the summary
-- [ ] Test (a failed claim doesn't stop the run): the claim agent for the first claim raises a timeout; `work_claim` returns "CLM-…: failed …, back in the queue", and the next claims are still decided
-- [ ] Test (tried again): the claim that failed once is worked again in the same run and decided, with one error step and `attempts` 2
-- [ ] Test (fails twice): a claim whose claim agent raises both times ends `needs_handler`, its to-do item is `for_handler`, and the run still finishes
-- [ ] Test (missed claims): a stub that calls `finish_run` too early gets the 409 back as a tool result, works the missed claim and then finishes
-- [ ] Test: a claim agent that hits its model-call limit without a decision is released like any other failure
-- [ ] `npm run check:python` passes with coverage at or above 80%
+- [x] Test: a stub queue run with `max_claims` 3 works three claims, each with its own thread id and its steps on its own claim, and leaves the other 22 waiting
+- [x] Test (the to-do list): the stored list goes through `to_do`, `in_progress` and `done` for each claim as the stub run goes on, and the run ends `finished` with the summary
+- [x] Test (a failed claim doesn't stop the run): the claim agent for the first claim raises a timeout; `work_claim` returns "CLM-…: failed …, back in the queue", and the next claims are still decided
+- [x] Test (tried again): the claim that failed once is worked again in the same run and decided, with one error step and `attempts` 2
+- [x] Test (fails twice): a claim whose claim agent raises both times ends `needs_handler`, its to-do item is `for_handler`, and the run still finishes
+- [x] Test (missed claims): a stub that calls `finish_run` too early gets the 409 back as a tool result, works the missed claim and then finishes
+- [x] Test: a claim agent that hits its model-call limit without a decision is released like any other failure
+- [x] `npm run check:python` passes with coverage at or above 80%
 
 ## Phase 5: the dashboard
 
