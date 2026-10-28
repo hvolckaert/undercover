@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { postJson, type Claim, type Step } from "./api";
 import {
+  Attempts,
   CustomerPanel,
   DecisionPanel,
   PolicyPanel,
+  ReadPanel,
   SignOffPanel,
   StepsPanel,
 } from "./ClaimParts";
@@ -63,6 +65,7 @@ export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
       <header className="claim-head">
         <h1 className="mono">{claim.claim_id}</h1>
         <StatusBadge status={claim.status} />
+        <Attempts count={claim.attempts} />
         {claim.status === "waiting" && !started && (
           <button type="button" onClick={runAgent}>
             Run the agent
@@ -77,6 +80,7 @@ export function ClaimPage({ claimId }: Readonly<{ claimId: string }>) {
             <SignOffPanel claim={claim} onDone={reload} />
           )}
           <DecisionPanel claim={claim} />
+          <ReadPanel steps={steps} />
           <StepsPanel steps={steps} />
         </div>
         <div>

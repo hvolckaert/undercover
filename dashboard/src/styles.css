@@ -221,6 +221,11 @@ td.number {
   background: var(--sea-green);
 }
 
+.status-needs_handler {
+  background: var(--raspberry);
+  color: #ffffff;
+}
+
 .muted {
   color: var(--muted);
 }
@@ -245,7 +250,8 @@ h3 {
 }
 
 button,
-select {
+select,
+input {
   font: inherit;
   border: none;
   border-radius: 999px;
@@ -264,9 +270,50 @@ button:disabled {
   cursor: not-allowed;
 }
 
-select {
+select,
+input {
   background: var(--subtle);
   color: var(--ink);
+}
+
+input[type="number"] {
+  width: 6em;
+}
+
+button.secondary {
+  background: var(--subtle);
+  color: var(--ink);
+}
+
+.todos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.todo {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--subtle);
+  overflow-wrap: anywhere;
+}
+
+.todo-done span:nth-child(2) {
+  color: var(--muted);
+}
+
+.todo-in_progress {
+  font-weight: 600;
+}
+
+.document pre {
+  margin: 8px 0 0;
 }
 
 .claim-head {

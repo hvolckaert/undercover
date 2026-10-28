@@ -1,5 +1,9 @@
 export type Status =
-  "waiting" | "in_progress" | "waiting_for_signoff" | "decided";
+  | "waiting"
+  | "in_progress"
+  | "waiting_for_signoff"
+  | "decided"
+  | "needs_handler";
 export type Outcome = "approve" | "decline" | "refer";
 
 export interface ClaimSummary {
@@ -10,6 +14,7 @@ export interface ClaimSummary {
   submitted_on: string;
   amount_claimed: number;
   status: Status;
+  attempts: number;
   decision: Outcome | null;
   payout: number | null;
 }
@@ -59,6 +64,7 @@ export interface Claim {
   amount_claimed: number;
   documents: Document[];
   status: Status;
+  attempts: number;
   decision: Decision | null;
   sign_off: SignOff | null;
   payment: Payment | null;
@@ -108,9 +114,40 @@ export interface Customer {
 
 export interface Step {
   step_id: number;
+  thread_id: string;
   kind: "tool_call" | "tool_result" | "reply" | "error";
   content: string;
   created_at: string;
+}
+
+export type TodoStatus = "to_do" | "in_progress" | "done" | "for_handler";
+
+export interface Todo {
+  task: string;
+  status: TodoStatus;
+}
+
+export interface Run {
+  run_id: string;
+  max_claims: number;
+  status: "running" | "finished" | "stopped";
+  todos: Todo[];
+  summary: string | null;
+  problem: string | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
+export interface Section {
+  document: "policy_wording" | "claims_manual";
+  section: string;
+  title: string;
+  text: string;
+}
+
+export interface Instructions {
+  queue: string;
+  claim: string;
 }
 
 export interface Handler {

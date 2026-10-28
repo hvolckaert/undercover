@@ -31,6 +31,7 @@ const waiting: Claim = {
     { name: "Hotel receipt", type: "receipt", content: "Total $245.00" },
   ],
   status: "waiting",
+  attempts: 0,
   decision: null,
   sign_off: null,
   payment: null,
@@ -44,8 +45,14 @@ const approved = (payout: number) => ({
   policy_section: "3. Trip Delay",
 });
 
-const step = (step_id: number, kind: Step["kind"], content: string): Step => ({
+const step = (
+  step_id: number,
+  kind: Step["kind"],
+  content: string,
+  thread_id = "t1",
+): Step => ({
   step_id,
+  thread_id,
   kind,
   content,
   created_at: "2026-10-22T07:00:00+00:00",
@@ -226,4 +233,73 @@ it("says when the claim cannot load", async () => {
   mockApi({});
   render(<ClaimPage claimId="CLM-1001" />);
   expect(await screen.findByText(/Could not load the claim/)).toBeDefined();
+});
+
+const readResult = (step_id: number, section: object, thread_id = "t2") =>
+  step(
+    step_id,
+    "tool_result",
+    `read_section: ${JSON.stringify(section)}`,
+    thread_id,
+  );
+
+it("lists the sections the agent read on its latest attempt", async () => {
+  const meals = {
+    document: "claims_manual",
+    section: "10",
+    title: "Meals without receipts",
+    text: "## 10. Meals without receipts\n\nA flat $35 per traveler.",
+  };
+  const delay = {
+    document: "policy_wording",
+    section: "3",
+    title: "Trip Delay",
+    text: "## 3. Trip Delay",
+  };
+  const oldRead = { ...delay, section: "9", title: "General exclusions" };
+  mockApi(
+    routes(
+      { ...waiting, status: "decided", attempts: 2, decision: approved(245) },
+      [
+        readResult(1, oldRead, "t1"),
+        step(2, "error", "The model timed out.", "t1"),
+        readResult(3, delay),
+        readResult(4, meals),
+        readResult(5, meals),
+        step(6, "tool_result", "read_section: Refused (404): No section", "t2"),
+        step(7, "reply", "Approved.", "t2"),
+      ],
+    ),
+  );
+  render(<ClaimPage claimId="CLM-1001" />);
+  expect(await screen.findByText("What the agent read")).toBeDefined();
+  expect(
+    screen.getByText("Claims manual, section 10: Meals without receipts"),
+  ).toBeDefined();
+  expect(
+    screen.getByText("Policy wording, section 3: Trip Delay"),
+  ).toBeDefined();
+  expect(screen.queryByText(/section 9: General exclusions/)).toBeNull();
+  expect(
+    screen.getByText(/A flat \$35 per traveler/, { selector: "pre" }),
+  ).toBeDefined();
+  expect(screen.getByText("2 attempts")).toBeDefined();
+  expect(screen.getByText("Attempt 1")).toBeDefined();
+  expect(screen.getByText("Attempt 2")).toBeDefined();
+});
+
+it("shows a claim left for a handler", async () => {
+  mockApi(
+    routes({ ...waiting, status: "needs_handler", attempts: 2 }, [
+      step(1, "error", "The model timed out.", "t1"),
+      step(2, "error", "Timed out again. Left for a handler.", "t2"),
+    ]),
+  );
+  render(<ClaimPage claimId="CLM-1001" />);
+  expect(await screen.findByText("Left for a handler")).toBeDefined();
+  expect(
+    screen.getByText("Timed out again. Left for a handler."),
+  ).toBeDefined();
+  expect(screen.getByText("No sections read yet.")).toBeDefined();
+  expect(screen.queryByRole("button", { name: "Run the agent" })).toBeNull();
 });

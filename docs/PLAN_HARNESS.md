@@ -127,10 +127,10 @@ On the queue page, a run panel: a number field for the cap (5 by default, with a
 
 Why: handlers should be able to see what the agent means to do, how far it has got, and what each decision rests on, all from the screens they already use.
 
-- [ ] Vitest tests: the run panel starts a run with the cap entered; the to-do list renders each state; the summary shows on a finished run; "Whole queue" fills in the waiting count
-- [ ] Vitest tests: the claim page lists the sections read and shows a `needs_handler` claim with its error steps; the instructions page shows both sets
-- [ ] In the browser via the Playwright MCP server, with stubbed data from a test run: the queue page shows the to-do list and five states of tiles in light and dark mode, and at phone width has no horizontal scroll
-- [ ] `npm run check:ts` passes with coverage at or above 80%
+- [x] Vitest tests: the run panel starts a run with the cap entered; the to-do list renders each state; the summary shows on a finished run; "Whole queue" fills in the waiting count
+- [x] Vitest tests: the claim page lists the sections read and shows a `needs_handler` claim with its error steps; the instructions page shows both sets
+- [x] In the browser via the Playwright MCP server, with stubbed data from a test run: the queue page shows the to-do list and five states of tiles in light and dark mode, and at phone width has no horizontal scroll
+- [x] `npm run check:ts` passes with coverage at or above 80%
 
 ## Phase 6: end-to-end tests, the live run and handover
 

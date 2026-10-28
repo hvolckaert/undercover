@@ -43,6 +43,7 @@ def test_start_a_waiting_claim():
     assert claim("CLM-1001")["status"] == "in_progress"
     started = row("CLM-1001")
     assert started["attempts"] == 1
+    assert claim("CLM-1001")["attempts"] == 1
     assert started["run_id"] == run["run_id"]
     assert started["thread_id"] == thread_id
     assert start("CLM-1001").status_code == 409

@@ -7,7 +7,8 @@ import {
   type Policy,
   type Step,
 } from "./api";
-import { label, money } from "./format";
+import { DOCUMENT_LABELS, label, money } from "./format";
+import { attempts, sectionsRead } from "./steps";
 import { useResource } from "./useResource";
 
 const STEP_LABELS: Record<Step["kind"], string> = {
@@ -108,33 +109,76 @@ export function SignOffPanel({
   );
 }
 
+export function ReadPanel({ steps }: Readonly<{ steps: Step[] }>) {
+  const sections = sectionsRead(attempts(steps).at(-1) ?? []);
+  return (
+    <section className="panel">
+      <h2>What the agent read</h2>
+      {sections.length === 0 ? (
+        <p className="muted">No sections read yet.</p>
+      ) : (
+        sections.map((section) => (
+          <details
+            key={`${section.document} ${section.section}`}
+            className="document"
+          >
+            <summary>
+              {DOCUMENT_LABELS[section.document]}, section {section.section}:{" "}
+              {section.title}
+            </summary>
+            <pre className="prose">{section.text}</pre>
+          </details>
+        ))
+      )}
+    </section>
+  );
+}
+
+function StepList({ steps }: Readonly<{ steps: Step[] }>) {
+  return (
+    <ol className="steps">
+      {steps.map((step) => (
+        <li key={step.step_id} className={`step step-${step.kind}`}>
+          <span className="step-kind">{STEP_LABELS[step.kind]}</span>
+          {step.content.length > 240 ? (
+            <details>
+              <summary className="mono">{step.content.slice(0, 160)}</summary>
+              <pre className="mono">{step.content}</pre>
+            </details>
+          ) : (
+            <span className={step.kind === "reply" ? undefined : "mono"}>
+              {step.content}
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export function Attempts({ count }: Readonly<{ count: number }>) {
+  if (count === 0) return null;
+  return (
+    <span className="muted">
+      {count} {count === 1 ? "attempt" : "attempts"}
+    </span>
+  );
+}
+
 export function StepsPanel({ steps }: Readonly<{ steps: Step[] }>) {
+  const groups = attempts(steps);
   return (
     <section className="panel">
       <h2>What the agent did</h2>
-      {steps.length === 0 ? (
-        <p className="muted">No steps yet.</p>
-      ) : (
-        <ol className="steps">
-          {steps.map((step) => (
-            <li key={step.step_id} className={`step step-${step.kind}`}>
-              <span className="step-kind">{STEP_LABELS[step.kind]}</span>
-              {step.content.length > 240 ? (
-                <details>
-                  <summary className="mono">
-                    {step.content.slice(0, 160)}
-                  </summary>
-                  <pre className="mono">{step.content}</pre>
-                </details>
-              ) : (
-                <span className={step.kind === "reply" ? undefined : "mono"}>
-                  {step.content}
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
+      {groups.length === 0 && <p className="muted">No steps yet.</p>}
+      {groups.length === 1 && <StepList steps={groups[0]} />}
+      {groups.length > 1 &&
+        groups.map((group, index) => (
+          <div key={group[0].thread_id}>
+            <h3>Attempt {index + 1}</h3>
+            <StepList steps={group} />
+          </div>
+        ))}
     </section>
   );
 }

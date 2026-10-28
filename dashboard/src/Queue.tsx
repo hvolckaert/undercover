@@ -1,5 +1,6 @@
 import type { ClaimSummary } from "./api";
 import { label, money, STATUS_COLORS, STATUS_LABELS, STATUSES } from "./format";
+import { RunPanel } from "./RunPanel";
 import { StatusBadge } from "./StatusBadge";
 import { useResource } from "./useResource";
 
@@ -30,6 +31,9 @@ export function Queue() {
           </div>
         ))}
       </section>
+      <RunPanel
+        waiting={claims.filter((claim) => claim.status === "waiting").length}
+      />
       <section className="panel">
         <h2>Claims queue</h2>
         <div className="scroll">

@@ -10,7 +10,7 @@ afterEach(() => {
 });
 
 it("shows the queue with counts by state", async () => {
-  mockApi({ "/api/claims": claims });
+  mockApi({ "/api/claims": claims, "/api/runs/latest": null });
   render(<App />);
   expect(await screen.findByText("Maya Patel")).toBeDefined();
   const tiles = screen.getByLabelText("Claims by state");
@@ -18,6 +18,8 @@ it("shows the queue with counts by state", async () => {
   expect(tiles.textContent).toContain("1Waiting");
   expect(tiles.textContent).toContain("0In progress");
   expect(tiles.textContent).toContain("1Decided");
+  expect(tiles.textContent).toContain("0Left for a handler");
+  expect(await screen.findByText("Agent run")).toBeDefined();
   expect(screen.getByText("$1,250.00")).toBeDefined();
   expect(screen.getByText("Trip delay")).toBeDefined();
   expect(screen.getByText("Approve")).toBeDefined();
@@ -32,11 +34,16 @@ it("says when the queue cannot load", async () => {
   expect(await screen.findByText(/Could not load the queue/)).toBeDefined();
 });
 
-it("shows the agent's instructions, read only", async () => {
-  mockApi({ "/api/instructions": { instructions: "You are the agent." } });
+it("shows both sets of instructions, read only", async () => {
+  mockApi({
+    "/api/instructions": { queue: "Run the queue.", claim: "Decide it." },
+  });
   window.location.hash = "#/instructions";
   render(<App />);
-  expect(await screen.findByText("You are the agent.")).toBeDefined();
+  expect(await screen.findByText("Run the queue.")).toBeDefined();
+  expect(screen.getByText("Decide it.")).toBeDefined();
+  expect(screen.getByText("Running the queue")).toBeDefined();
+  expect(screen.getByText("Working a claim")).toBeDefined();
   expect(screen.queryByRole("textbox")).toBeNull();
   expect(screen.queryByRole("button")).toBeNull();
 });
@@ -53,7 +60,8 @@ it("says when the instructions cannot load", async () => {
 it("follows the hash", async () => {
   mockApi({
     "/api/claims": claims,
-    "/api/instructions": { instructions: "Hi" },
+    "/api/runs/latest": null,
+    "/api/instructions": { queue: "Hi", claim: "There" },
   });
   render(<App />);
   expect(await screen.findByText("Maya Patel")).toBeDefined();

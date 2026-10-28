@@ -182,6 +182,7 @@ def get_claim(claim_id: str, conn: Db) -> dict[str, Any]:
     return {
         **json.loads(row["body"]),
         "status": row["status"],
+        "attempts": row["attempts"],
         "decision": json.loads(row["decision"]) if row["decision"] else None,
         "sign_off": json.loads(row["sign_off"]) if row["sign_off"] else None,
         "payment": dict(payment) if payment else None,
