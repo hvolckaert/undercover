@@ -1,6 +1,6 @@
 # Status
 
-The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harness from `docs/PLAN_HARNESS.md` is in progress: phases 1 to 5 are done.
+The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harness from `docs/PLAN_HARNESS.md` is built: all six phases are done.
 
 ## Built
 
@@ -17,11 +17,12 @@ The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harn
   - `#/`: the queue with counts by state, refreshed every 3 seconds, and the agent run panel: a cap (5 by default, or "Whole queue"), "Start run", and the latest run with its to-do list and summary, refreshed every 2 seconds while it runs.
   - `#/claims/<id>`: the claim in full with its policy, the customer's earlier claims, the decision and the agent's steps, polled every second while the agent works, grouped by attempt, with "What the agent read": the sections of the wording and the manual it read on its latest attempt. A button runs the agent on a waiting claim, and a sign-off control releases a payout over $1,000.
   - `#/instructions`: the instructions for running the queue and for working a claim, read only.
-- `e2e/`: Playwright tests of the queue, a decided claim, the sign-off rule and the instructions. They run on ports 8001 and 5174 against a fresh database in the temp folder, standing in for the agent by calling its API operations, so they never call a model or touch the dev database.
+- `e2e/`: Playwright tests of the queue, a decided claim, the sign-off rule, the instructions (`pilot.spec.ts`), and a run's to-do list, the sections read and a claim left for a handler (`run.spec.ts`). They run one file at a time on ports 8001 and 5174 against a fresh database in the temp folder. They stand in for the agent by calling its API operations, and `run.spec.ts` writes its run straight into the database, so they never call a model or touch the dev database.
 
 ## Running it
 
-- `npm run dev` starts the backend on port 8000 and the dashboard on http://localhost:5173. Open a claim and press "Run the agent".
+- `npm run dev` starts the backend on port 8000 and the dashboard on http://localhost:5173. On the queue page, set "Claims to work" and press "Start run", or open a claim and press "Run the agent". For a trial with a real model, reseed first and cap the run at 5.
+- To run the backend on another port, start it with `BACKEND_URL` set to its own address, so the agent calls it there.
 - `npm run reseed` starts the database again from `data/`, even while the backend is running.
 - `npm run check` runs every check.
 - On Windows the backend's auto-reload can hang after a change and keep serving old code; stop and restart `npm run dev`.

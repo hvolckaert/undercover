@@ -136,10 +136,10 @@ Why: handlers should be able to see what the agent means to do, how far it has g
 
 Playwright tests that stand in for the queue agent by calling its operations (`start_claim`, `write_todos`, `record_step`, `record_decision`, `release_claim`, `finish_run`), as the pilot's e2e tests stand in for the claim agent; `start_run` isn't called, so no model runs. Then a live run on the default model, and the docs.
 
-- [ ] E2E: a run's to-do list appears on the queue page and is ticked off as items change
-- [ ] E2E: a claim with `read_section` steps shows the sections on its page
-- [ ] E2E: a claim released twice shows as left for a handler on the queue and on its page
-- [ ] E2E: the instructions page shows both sets of instructions
-- [ ] Live, after `npm run reseed`: a run capped at five from the dashboard works five claims on its own; in the browser the to-do list fills in and is ticked off, each claim's steps show the sections it read, the run finishes with a summary, and the other 20 claims are still waiting
-- [ ] `docs/SPEC.md`, `docs/TECH_STACK.md` (the two agents, their entry points `run_queue(run_id)` and `run_claim(claim_id, thread_id)`, the middleware and the default model) and `docs/STATUS.md` describe the product as it now is
-- [ ] `npm run check` passes
+- [x] E2E: a run's to-do list appears on the queue page and is ticked off as items change
+- [x] E2E: a claim with `read_section` steps shows the sections on its page
+- [x] E2E: a claim released twice shows as left for a handler on the queue and on its page
+- [x] E2E: the instructions page shows both sets of instructions
+- [x] Live, after `npm run reseed`: a run capped at five from the dashboard works five claims on its own; in the browser the to-do list fills in and is ticked off, each claim's steps show the sections it read, the run finishes with a summary, and the other 20 claims are still waiting
+- [x] `docs/SPEC.md`, `docs/TECH_STACK.md` (the two agents, their entry points `run_queue(run_id)` and `run_claim(claim_id, thread_id)`, the middleware and the default model) and `docs/STATUS.md` describe the product as it now is
+- [x] `npm run check` passes

@@ -3,7 +3,7 @@ import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const db = join(tmpdir(), "undercover-e2e.db");
+export const db = join(tmpdir(), "undercover-e2e.db");
 
 // The main process starts the servers on a fresh database; workers leave it be.
 if (!process.env.TEST_WORKER_INDEX) rmSync(db, { force: true });
@@ -12,6 +12,8 @@ export default defineConfig({
   testDir: "e2e",
   outputDir: "e2e/test-results",
   reporter: "list",
+  // The tests share one database, so they run one file at a time, in order.
+  workers: 1,
   use: { baseURL: "http://localhost:5174" },
   webServer: [
     {

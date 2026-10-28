@@ -225,7 +225,7 @@ it("shows a declined claim and a problem step", async () => {
   );
   render(<ClaimPage claimId="CLM-1001" />);
   expect(await screen.findByText("Decision: Decline")).toBeDefined();
-  expect(screen.getByText("None")).toBeDefined();
+  expect(screen.getByText("Payment").nextSibling?.textContent).toBe("None");
   expect(screen.getByText("Problem")).toBeDefined();
 });
 
