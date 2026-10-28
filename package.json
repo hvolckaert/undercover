@@ -14,7 +14,8 @@
     "check": "npm run check:python && npm run check:ts && npm run e2e",
     "check:python": "uv run ruff format --check && uv run ruff check && pyright && uv run pytest -q",
     "check:ts": "prettier --check -u dashboard e2e *.config.* && eslint dashboard e2e *.config.* && tsc && vitest run --root dashboard --coverage",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "reseed": "uv run -m backend.db"
   },
   "dependencies": {
     "react": "^19.3.0",

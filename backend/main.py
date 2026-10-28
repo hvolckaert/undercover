@@ -2,6 +2,8 @@
 
 import json
 import sqlite3
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
@@ -14,8 +16,16 @@ from agent import main as claim_agent
 from backend import db
 
 INSTRUCTIONS = Path(__file__).resolve().parent / "instructions.md"
+MAX_ATTEMPTS = 2
 
-app = FastAPI(title="UnderCover")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    recover()
+    yield
+
+
+app = FastAPI(title="UnderCover", lifespan=lifespan)
 
 Db = Annotated[sqlite3.Connection, Depends(db.get_db)]
 
@@ -58,6 +68,19 @@ class Payment(BaseModel):
     """A payment on an approved claim."""
 
     amount: float = Field(gt=0)
+
+
+class Start(BaseModel):
+    """The run starting work on a claim."""
+
+    run_id: str
+
+
+class Release(BaseModel):
+    """Why a claim agent stopped before it decided a claim."""
+
+    thread_id: str
+    problem: str
 
 
 class SignOff(BaseModel):
@@ -250,8 +273,66 @@ def add_step(conn: sqlite3.Connection, claim_id: str, step: Step) -> None:
     )
 
 
+def start(conn: sqlite3.Connection, claim_id: str, run_id: str | None) -> str:
+    """Move a waiting claim to in progress and return its new thread id."""
+    claim_row(conn, claim_id)
+    thread_id = uuid4().hex
+    started = conn.execute(
+        "UPDATE claims SET status = 'in_progress', attempts = attempts + 1,"
+        " run_id = ?, thread_id = ? WHERE claim_id = ? AND status = 'waiting'",
+        (run_id, thread_id, claim_id),
+    ).rowcount
+    if not started:
+        raise HTTPException(409, f"Claim {claim_id} is not waiting")
+    return thread_id
+
+
+def release(
+    conn: sqlite3.Connection, claim_id: str, thread_id: str, problem: str
+) -> str:
+    """Put a claim back in the queue, or leave it for a handler on its last try."""
+    row = claim_row(conn, claim_id)
+    if row["status"] != "in_progress" or row["thread_id"] != thread_id:
+        raise HTTPException(409, f"Claim {claim_id} is not in progress on this thread")
+    status = "needs_handler" if row["attempts"] >= MAX_ATTEMPTS else "waiting"
+    if status == "needs_handler":
+        problem += f" Left for a handler after {row['attempts']} attempts."
+    add_step(conn, claim_id, Step(thread_id=thread_id, kind="error", content=problem))
+    conn.execute("UPDATE claims SET status = ? WHERE claim_id = ?", (status, claim_id))
+    return status
+
+
+def recover() -> None:
+    """Release the claims left in progress when the backend last stopped."""
+    conn = db.connect()
+    with conn:
+        rows = conn.execute(
+            "SELECT claim_id, thread_id FROM claims WHERE status = 'in_progress'"
+        ).fetchall()
+        for row in rows:
+            release(
+                conn,
+                row["claim_id"],
+                row["thread_id"],
+                "The backend restarted while the agent was working on this claim.",
+            )
+    conn.close()
+
+
+@app.post("/api/claims/{claim_id}/start", operation_id="start_claim")
+def start_claim(claim_id: str, request: Start, conn: Db) -> dict[str, str]:
+    """Start work on a waiting claim for a run and return the thread id."""
+    return {"thread_id": start(conn, claim_id, request.run_id)}
+
+
+@app.post("/api/claims/{claim_id}/release", operation_id="release_claim")
+def release_claim(claim_id: str, request: Release, conn: Db) -> dict[str, str]:
+    """Release a claim the agent could not decide, with the problem."""
+    return {"status": release(conn, claim_id, request.thread_id, request.problem)}
+
+
 def work_claim(claim_id: str, thread_id: str) -> None:
-    """Run the agent on a claim; put it back in the queue if no decision comes."""
+    """Run the agent on a claim; release it if no decision comes."""
     try:
         claim_agent.run(claim_id, thread_id)
         problem = "The agent finished without recording a decision."
@@ -260,25 +341,14 @@ def work_claim(claim_id: str, thread_id: str) -> None:
     conn = db.connect()
     with conn:
         if claim_row(conn, claim_id)["status"] == "in_progress":
-            add_step(
-                conn, claim_id, Step(thread_id=thread_id, kind="error", content=problem)
-            )
-            conn.execute(
-                "UPDATE claims SET status = 'waiting' WHERE claim_id = ?", (claim_id,)
-            )
+            release(conn, claim_id, thread_id, problem)
     conn.close()
 
 
 @app.post("/api/claims/{claim_id}/run", operation_id="run_agent")
 def run_agent(claim_id: str, tasks: BackgroundTasks, conn: Db) -> dict[str, str]:
     """Start the UnderCover Agent on a waiting claim."""
-    if claim_row(conn, claim_id)["status"] != "waiting":
-        raise HTTPException(409, f"Claim {claim_id} is not waiting")
-    thread_id = uuid4().hex
-    conn.execute(
-        "UPDATE claims SET status = 'in_progress', thread_id = ? WHERE claim_id = ?",
-        (thread_id, claim_id),
-    )
+    thread_id = start(conn, claim_id, None)
     conn.commit()
     tasks.add_task(work_claim, claim_id, thread_id)
     return {"status": "in_progress", "thread_id": thread_id}

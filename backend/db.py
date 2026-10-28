@@ -24,7 +24,9 @@ CREATE TABLE IF NOT EXISTS claims (
     body TEXT NOT NULL,
     decision TEXT,
     sign_off TEXT,
-    thread_id TEXT
+    thread_id TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    run_id TEXT
 );
 CREATE TABLE IF NOT EXISTS steps (
     step_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,6 +87,16 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+def reseed() -> None:
+    """Drop every table and seed the database again from data/."""
+    conn = connect()
+    conn.executescript(
+        "DROP TABLE records; DROP TABLE claims; DROP TABLE steps; DROP TABLE payments;"
+    )
+    conn.close()
+    connect().close()
+
+
 def get_db() -> Iterator[sqlite3.Connection]:
     """Give a request its own connection, committed at the end."""
     conn = connect()
@@ -109,3 +121,8 @@ def records(conn: sqlite3.Connection, kind: str) -> list[Any]:
         "SELECT body FROM records WHERE kind = ? ORDER BY id", (kind,)
     ).fetchall()
     return [json.loads(row["body"]) for row in rows]
+
+
+if __name__ == "__main__":
+    reseed()
+    print(f"Reseeded {db_path()}")
