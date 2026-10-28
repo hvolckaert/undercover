@@ -15,7 +15,8 @@ from pydantic import BaseModel, Field, model_validator
 from agent import main as claim_agent
 from backend import db
 
-INSTRUCTIONS = Path(__file__).resolve().parent / "instructions.md"
+INSTRUCTIONS = Path(__file__).resolve().parent / "instructions" / "claim.md"
+DOCUMENTS = {"policy_wording": "policy_wording.md", "claims_manual": "claims_manual.md"}
 MAX_ATTEMPTS = 2
 
 
@@ -177,10 +178,53 @@ def get_customer(customer_id: str, conn: Db) -> dict[str, Any]:
     return found(db.record(conn, "customer", customer_id), f"customer {customer_id}")
 
 
-@app.get("/api/policy-wording", operation_id="get_policy_wording")
-def get_policy_wording() -> dict[str, str]:
-    """Get the policy wording, the contract with the customer."""
-    return {"wording": (db.DATA / "policy_wording.md").read_text(encoding="utf-8")}
+def sections(document: str) -> dict[str, dict[str, str]]:
+    """Split a document on its numbered headings, keyed by the section number."""
+    name = found(DOCUMENTS.get(document), f"document {document}")
+    text = (db.DATA / name).read_text(encoding="utf-8")
+    split = {}
+    for part in text.split("\n## ")[1:]:
+        number, _, title = part.partition("\n")[0].partition(". ")
+        split[number] = {
+            "document": document,
+            "section": number,
+            "title": title,
+            "text": f"## {part.strip()}",
+        }
+    return split
+
+
+@app.get("/api/documents", operation_id="list_sections")
+def list_sections() -> dict[str, list[str]]:
+    """List the sections of the policy wording and the claims manual."""
+    return {
+        document: [f"{s['section']}. {s['title']}" for s in sections(document).values()]
+        for document in DOCUMENTS
+    }
+
+
+@app.get("/api/documents/search", operation_id="search_documents")
+def search_documents(words: str) -> list[dict[str, str]]:
+    """Find the paragraphs of the wording and the manual that hold all the words."""
+    wanted = words.lower().split()
+    return [
+        {
+            "document": section["document"],
+            "section": section["section"],
+            "title": section["title"],
+            "paragraph": paragraph,
+        }
+        for document in DOCUMENTS
+        for section in sections(document).values()
+        for paragraph in section["text"].split("\n\n")
+        if all(word in paragraph.lower() for word in wanted)
+    ]
+
+
+@app.get("/api/documents/{document}/sections/{section}", operation_id="read_section")
+def read_section(document: str, section: str) -> dict[str, str]:
+    """Read one section of the policy wording or the claims manual."""
+    return found(sections(document).get(section), f"section {section} in {document}")
 
 
 @app.get("/api/instructions", operation_id="get_instructions")
@@ -334,7 +378,7 @@ def release_claim(claim_id: str, request: Release, conn: Db) -> dict[str, str]:
 def work_claim(claim_id: str, thread_id: str) -> None:
     """Run the agent on a claim; release it if no decision comes."""
     try:
-        claim_agent.run(claim_id, thread_id)
+        claim_agent.run_claim(claim_id, thread_id)
         problem = "The agent finished without recording a decision."
     except Exception as error:
         problem = f"The agent stopped with an error: {error}"

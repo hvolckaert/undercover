@@ -1,16 +1,17 @@
 # Status
 
-The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harness from `docs/PLAN_HARNESS.md` is in progress: phase 1 is done.
+The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harness from `docs/PLAN_HARNESS.md` is in progress: phases 1 and 2 are done.
 
 ## Built
 
 - `backend/`: FastAPI and SQLite. On first start it seeds `backend/undercover.db` (or the file in `UNDERCOVER_DB`) from `data/`, leaving out `data/evals/` and `data/security/`. Every operation has an `operation_id`, a one-line docstring and no optional inputs.
-  - Read: `list_claims`, `get_claim`, `get_policy` (with the plan's limits and add-ons), `get_customer`, `get_policy_wording`, `get_instructions`, `list_handlers`, `list_steps`.
+  - Read: `list_claims`, `get_claim`, `get_policy` (with the plan's limits and add-ons), `get_customer`, `get_instructions`, `list_handlers`, `list_steps`.
+  - Documents: `list_sections`, `read_section` and `search_documents` over the policy wording and the claims manual, split on their numbered headings.
   - Workflow: `run_agent`, `record_step`, `record_decision`, `pay_claim`, `sign_off`.
   - Attempts: `start_claim` (for a run) and `release_claim`. A claim agent that stops before a decision releases the claim: back to `waiting` the first time, `needs_handler` the second. On startup the backend releases claims left `in_progress`.
   - A claim is `waiting`, `in_progress`, `waiting_for_signoff`, `decided` or `needs_handler`. An approved payout over $1,000 (from `data/company.json`) goes to `waiting_for_signoff`, and `pay_claim` refuses it until a handler signs off; the sign-off makes the payment. Payments are records only.
-  - The agent's instructions are in `backend/instructions.md`.
-- `agent/`: the UnderCover Agent, `run(claim_id, thread_id)`, on LangChain's `create_agent` with `openai/gpt-6-luna` at low reasoning effort, or `MODEL_NAME`. It fetches its instructions from the backend and works only through the API: `get_claim`, `get_policy`, `get_customer`, `get_policy_wording`, `record_decision` and `pay_claim`. Each tool call, result and reply is posted to the backend as a step. `run_agent` starts it as a background task; a run that fails or ends without a decision puts the claim back to `waiting` with an error step.
+  - The agent's instructions are in `backend/instructions/claim.md`, written from the wording and the manual.
+- `agent/`: the UnderCover Agent, `run_claim(claim_id, thread_id)`, on LangChain's `create_agent` with `deepseek/deepseek-v4.1-flash` at low reasoning effort, or `MODEL_NAME`. It fetches its instructions from the backend and works only through the API: `get_claim`, `get_policy`, `get_customer`, `list_sections`, `read_section`, `search_documents`, `record_decision` and `pay_claim`. `ModelRetryMiddleware` retries provider errors and timeouts three times, and `ModelCallLimitMiddleware` ends a claim after 30 model calls. Each tool call, result and reply is posted to the backend as a step. The backend's URL is `BACKEND_URL`, `http://localhost:8000` by default. `run_agent` starts it as a background task; a run that fails or ends without a decision releases the claim.
 - `dashboard/`: React, Vite and TypeScript in the UnderCover brand, light and dark, with a hash router:
   - `#/`: the queue with counts by state, refreshed every 3 seconds.
   - `#/claims/<id>`: the claim in full with its policy, the customer's earlier claims, the decision and the agent's steps, polled every second while the agent works. A button runs the agent on a waiting claim, and a sign-off control releases a payout over $1,000.
@@ -26,4 +27,4 @@ The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harn
 
 ## Not built yet
 
-Scoring the agent against `data/evals/`, the claims manual, sign-in, real payments and customer messages.
+Scoring the agent against `data/evals/`, sign-in, real payments and customer messages.

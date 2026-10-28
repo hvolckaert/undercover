@@ -71,11 +71,37 @@ def test_get_customer():
     assert customer["previous_claims"][0]["claim_id"] == "CLM-0412"
 
 
-def test_policy_wording_and_instructions():
-    wording = client.get("/api/policy-wording").json()["wording"]
-    assert "## 10. How we work out your payment" in wording
+def test_instructions():
     instructions = client.get("/api/instructions").json()["instructions"]
     assert "UnderCover Agent" in instructions
+    assert client.get("/api/policy-wording").status_code == 404
+
+
+def test_list_sections():
+    sections = client.get("/api/documents").json()
+    assert len(sections["policy_wording"]) == 12
+    assert len(sections["claims_manual"]) == 14
+    assert sections["policy_wording"][9] == "10. How we work out your payment"
+    assert sections["claims_manual"][9] == "10. Meals without receipts"
+
+
+def test_read_section():
+    section = client.get("/api/documents/claims_manual/sections/10").json()
+    assert section["title"] == "Meals without receipts"
+    assert section["text"].startswith("## 10. Meals without receipts\n\n")
+    assert "flat $35 per traveler" in section["text"]
+    assert "## 11." not in section["text"]
+    wording = client.get("/api/documents/policy_wording/sections/12").json()
+    assert wording["text"].endswith("named as a traveler on your policy record.")
+    assert client.get("/api/documents/claims_manual/sections/99").status_code == 404
+    assert client.get("/api/documents/evals/sections/1").status_code == 404
+
+
+def test_search_documents():
+    found = client.get("/api/documents/search", params={"words": "Wild Animal"}).json()
+    assert [(f["document"], f["section"]) for f in found] == [("claims_manual", "7")]
+    assert found[0]["paragraph"].startswith("**Wild animals.**")
+    assert client.get("/api/documents/search", params={"words": "zebra"}).json() == []
 
 
 def test_list_handlers():

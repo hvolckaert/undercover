@@ -3,10 +3,12 @@
 import json
 import os
 from typing import Any, Literal
+from urllib.parse import quote
 
 import httpx
 from dotenv import load_dotenv
 from langchain.agents import create_agent
+from langchain.agents.middleware import ModelCallLimitMiddleware, ModelRetryMiddleware
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
 from langchain_core.tools import tool
@@ -15,9 +17,10 @@ from pydantic import BaseModel, Field, SecretStr
 
 load_dotenv(override=True)
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_MODEL = "openai/gpt-6-luna"
+DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
+MODEL_CALLS_PER_CLAIM = 30
 
 
 def backend() -> httpx.Client:
@@ -52,10 +55,25 @@ def get_customer(customer_id: str) -> str:
     return call("GET", f"/api/customers/{customer_id}")
 
 
+Document = Literal["policy_wording", "claims_manual"]
+
+
 @tool
-def get_policy_wording() -> str:
-    """Get the policy wording, the contract the decision must follow."""
-    return call("GET", "/api/policy-wording")
+def list_sections() -> str:
+    """List the numbered sections of the policy wording and the claims manual."""
+    return call("GET", "/api/documents")
+
+
+@tool
+def read_section(document: Document, section: str) -> str:
+    """Read one section of the policy wording or the claims manual, such as '7'."""
+    return call("GET", f"/api/documents/{document}/sections/{section}")
+
+
+@tool
+def search_documents(words: str) -> str:
+    """Find the paragraphs of the wording and the manual that hold all the words."""
+    return call("GET", f"/api/documents/search?words={quote(words)}")
 
 
 class Decision(BaseModel):
@@ -80,25 +98,42 @@ def pay_claim(claim_id: str, amount: float) -> str:
     return call("POST", f"/api/claims/{claim_id}/payment", {"amount": amount})
 
 
-TOOLS = [
+CLAIM_TOOLS = [
     get_claim,
     get_policy,
     get_customer,
-    get_policy_wording,
+    list_sections,
+    read_section,
+    search_documents,
     record_decision,
     pay_claim,
 ]
 
 
 def model() -> ChatOpenAI:
-    """Return the model named in MODEL_NAME, or GPT-6 Luna by default."""
+    """Return the model named in MODEL_NAME, or DeepSeek V4.1 Flash by default."""
     name = os.getenv("MODEL_NAME")
     return ChatOpenAI(
         model=name or DEFAULT_MODEL,
         base_url=OPENROUTER_BASE_URL,
         api_key=SecretStr(os.environ["OPENROUTER_API_KEY"]),
         reasoning_effort=None if name else "low",
+        timeout=120,
+        max_retries=0,
     )
+
+
+def claim_model() -> BaseChatModel:
+    """Return the model for one claim agent; tests replace it with a stub."""
+    return model()
+
+
+def middleware() -> list[Any]:
+    """Retry provider errors and timeouts, and stop a claim agent that loops."""
+    return [
+        ModelRetryMiddleware(max_retries=3, on_failure="error"),
+        ModelCallLimitMiddleware(run_limit=MODEL_CALLS_PER_CLAIM),
+    ]
 
 
 def steps(message: BaseMessage) -> list[tuple[str, str]]:
@@ -113,10 +148,15 @@ def steps(message: BaseMessage) -> list[tuple[str, str]]:
     return [("reply", message.text)] if message.text else []
 
 
-def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:
-    """Run the agent on one claim, record each step and return its final reply."""
+def run_claim(claim_id: str, thread_id: str) -> str:
+    """Run a claim agent on one claim, record each step and return its reply."""
     instructions = json.loads(call("GET", "/api/instructions"))["instructions"]
-    agent = create_agent(llm or model(), tools=TOOLS, system_prompt=instructions)
+    agent = create_agent(
+        claim_model(),
+        tools=CLAIM_TOOLS,
+        system_prompt=instructions,
+        middleware=middleware(),
+    )
     reply = ""
     for update in agent.stream(
         {"messages": [{"role": "user", "content": f"Decide claim {claim_id}."}]},

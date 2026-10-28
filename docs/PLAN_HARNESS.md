@@ -84,14 +84,14 @@ Add `list_sections`, `read_section` and `search_documents` to the backend, split
 
 Why here: the claim agent is what the queue agent will call, so it should be finished and working on its own, on one named claim, before anything drives it.
 
-- [ ] Tests: `list_sections` returns 12 wording sections and 14 manual sections with their titles; `read_section("claims_manual", "10")` returns "Meals without receipts" in full; an unknown document or section returns 404
-- [ ] Test: `search_documents?words=wild animal` returns manual section 7 with the wild-animals paragraph
-- [ ] Test: a stub claim agent that reads two sections, records a decision and pays it leaves `read_section` tool calls in the claim's steps
-- [ ] Test: a stub model that raises a provider error once and then answers still decides the claim, with no error step
-- [ ] Test: no tool or instruction mentions `data/evals`
-- [ ] `docs/SPEC.md` describes the manual as in use
-- [ ] With the real default model, `Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/claims/CLM-1001/run` decides CLM-1001, and its steps show `list_sections` and `read_section` calls rather than the whole wording
-- [ ] `npm run check:python` passes
+- [x] Tests: `list_sections` returns 12 wording sections and 14 manual sections with their titles; `read_section("claims_manual", "10")` returns "Meals without receipts" in full; an unknown document or section returns 404
+- [x] Test: `search_documents?words=wild animal` returns manual section 7 with the wild-animals paragraph
+- [x] Test: a stub claim agent that reads two sections, records a decision and pays it leaves `read_section` tool calls in the claim's steps
+- [x] Test: a stub model that raises a provider error once and then answers still decides the claim, with no error step
+- [x] Test: no tool or instruction mentions `data/evals`
+- [x] `docs/SPEC.md` describes the manual as in use
+- [x] With the real default model, `Invoke-RestMethod -Method Post http://127.0.0.1:8000/api/claims/CLM-1001/run` decides CLM-1001, and its steps show `list_sections` and `read_section` calls rather than the whole wording
+- [x] `npm run check:python` passes
 
 ## Phase 3: runs and the to-do list in the backend
 
