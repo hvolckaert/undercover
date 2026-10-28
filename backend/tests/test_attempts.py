@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from backend import db
@@ -5,10 +6,16 @@ from backend import main as backend
 from backend.main import app
 
 client = TestClient(app)
+run = {}
 
 
-def start(claim_id, run_id="run-1"):
-    return client.post(f"/api/claims/{claim_id}/start", json={"run_id": run_id})
+@pytest.fixture(autouse=True)
+def a_run(new_run):
+    run["run_id"] = new_run().json()["run_id"]
+
+
+def start(claim_id):
+    return client.post(f"/api/claims/{claim_id}/start", json={"run_id": run["run_id"]})
 
 
 def release(claim_id, thread_id, problem="The model timed out."):
@@ -36,7 +43,7 @@ def test_start_a_waiting_claim():
     assert claim("CLM-1001")["status"] == "in_progress"
     started = row("CLM-1001")
     assert started["attempts"] == 1
-    assert started["run_id"] == "run-1"
+    assert started["run_id"] == run["run_id"]
     assert started["thread_id"] == thread_id
     assert start("CLM-1001").status_code == 409
     assert start("CLM-9999").status_code == 404

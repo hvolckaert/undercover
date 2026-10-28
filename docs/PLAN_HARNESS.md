@@ -99,12 +99,12 @@ Add the `runs` table and `start_run`, `get_latest_run`, `write_todos` and `finis
 
 Why here: as in the pilot, the rules are built and tested before an agent exists to break them.
 
-- [ ] Tests: `start_run` with `max_claims` 2 creates a running run; a second `start_run` returns 409 until it ends
-- [ ] Test (the cap): with `max_claims` 2, `start_claim` works for two claims and refuses the third with 409; a retry of one of the first two is allowed
-- [ ] Test (missed claims): `finish_run` returns 409 naming the claims while the run has started fewer than its cap and claims are waiting, or while a claim it started is back in `waiting`; once they are worked, it succeeds and stores the summary
-- [ ] Test: `write_todos` stores the list and `get_latest_run` returns it in order; on a finished run it returns 409
-- [ ] Test: a queue task that raises leaves the run `stopped` with the error as its problem
-- [ ] `npm run check:python` passes
+- [x] Tests: `start_run` with `max_claims` 2 creates a running run; a second `start_run` returns 409 until it ends
+- [x] Test (the cap): with `max_claims` 2, `start_claim` works for two claims and refuses the third with 409; a retry of one of the first two is allowed
+- [x] Test (missed claims): `finish_run` returns 409 naming the claims while the run has started fewer than its cap and claims are waiting, or while a claim it started is back in `waiting`; once they are worked, it succeeds and stores the summary
+- [x] Test: `write_todos` stores the list and `get_latest_run` returns it in order; on a finished run it returns 409
+- [x] Test: a queue task that raises leaves the run `stopped` with the error as its problem
+- [x] `npm run check:python` passes
 
 ## Phase 4: the queue agent
 

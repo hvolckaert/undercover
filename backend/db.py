@@ -36,6 +36,16 @@ CREATE TABLE IF NOT EXISTS steps (
     content TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS runs (
+    run_id TEXT PRIMARY KEY,
+    max_claims INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    todos TEXT NOT NULL,
+    summary TEXT,
+    problem TEXT,
+    started_at TEXT NOT NULL,
+    finished_at TEXT
+);
 CREATE TABLE IF NOT EXISTS payments (
     claim_id TEXT PRIMARY KEY,
     amount REAL NOT NULL,
@@ -91,7 +101,8 @@ def reseed() -> None:
     """Drop every table and seed the database again from data/."""
     conn = connect()
     conn.executescript(
-        "DROP TABLE records; DROP TABLE claims; DROP TABLE steps; DROP TABLE payments;"
+        "DROP TABLE records; DROP TABLE claims; DROP TABLE steps;"
+        " DROP TABLE payments; DROP TABLE runs;"
     )
     conn.close()
     connect().close()

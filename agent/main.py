@@ -173,3 +173,8 @@ def run_claim(claim_id: str, thread_id: str) -> str:
                     )
                     reply = content if kind == "reply" else reply
     return reply
+
+
+def run_queue(run_id: str) -> str:
+    """Run the queue agent for a run; built in the next phase."""
+    raise NotImplementedError(f"No queue agent yet for run {run_id}")

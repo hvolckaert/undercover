@@ -1,6 +1,6 @@
 # Status
 
-The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harness from `docs/PLAN_HARNESS.md` is in progress: phases 1 and 2 are done.
+The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harness from `docs/PLAN_HARNESS.md` is in progress: phases 1 to 3 are done.
 
 ## Built
 
@@ -8,6 +8,7 @@ The claims pilot from `docs/PLAN.md` is built: all six phases are done. The harn
   - Read: `list_claims`, `get_claim`, `get_policy` (with the plan's limits and add-ons), `get_customer`, `get_instructions`, `list_handlers`, `list_steps`.
   - Documents: `list_sections`, `read_section` and `search_documents` over the policy wording and the claims manual, split on their numbered headings.
   - Workflow: `run_agent`, `record_step`, `record_decision`, `pay_claim`, `sign_off`.
+  - Runs: `start_run` (with `max_claims`), `get_latest_run`, `write_todos` and `finish_run`. One run at a time. `start_claim` refuses a new claim once the run has started `max_claims` claims, and `finish_run` refuses while a claim within the cap is still waiting. A run whose agent ends without finishing is `stopped`.
   - Attempts: `start_claim` (for a run) and `release_claim`. A claim agent that stops before a decision releases the claim: back to `waiting` the first time, `needs_handler` the second. On startup the backend releases claims left `in_progress`.
   - A claim is `waiting`, `in_progress`, `waiting_for_signoff`, `decided` or `needs_handler`. An approved payout over $1,000 (from `data/company.json`) goes to `waiting_for_signoff`, and `pay_claim` refuses it until a handler signs off; the sign-off makes the payment. Payments are records only.
   - The agent's instructions are in `backend/instructions/claim.md`, written from the wording and the manual.

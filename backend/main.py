@@ -84,6 +84,31 @@ class Release(BaseModel):
     problem: str
 
 
+class NewRun(BaseModel):
+    """A run of the agent over the queue, capped at a number of claims."""
+
+    max_claims: int = Field(ge=1)
+
+
+class Todo(BaseModel):
+    """One item on the agent's to-do list for a run."""
+
+    task: str
+    status: Literal["to_do", "in_progress", "done", "for_handler"]
+
+
+class Todos(BaseModel):
+    """The agent's whole to-do list for a run."""
+
+    todos: list[Todo]
+
+
+class Finish(BaseModel):
+    """The agent's summary of a run, for the handlers."""
+
+    summary: str
+
+
 class SignOff(BaseModel):
     """A handler's sign-off on a payout over the limit."""
 
@@ -360,12 +385,61 @@ def recover() -> None:
                 row["thread_id"],
                 "The backend restarted while the agent was working on this claim.",
             )
+        conn.execute(
+            "UPDATE runs SET status = 'stopped', problem = ?, finished_at = ?"
+            " WHERE status = 'running'",
+            ("The backend restarted during the run.", now()),
+        )
     conn.close()
+
+
+def run_row(conn: sqlite3.Connection, run_id: str) -> sqlite3.Row:
+    """Return a run's row, or raise 404."""
+    return found(
+        conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone(),
+        f"run {run_id}",
+    )
+
+
+def running(conn: sqlite3.Connection, run_id: str) -> sqlite3.Row:
+    """Return a run's row, or raise 409 if it is not running."""
+    run = run_row(conn, run_id)
+    if run["status"] != "running":
+        raise HTTPException(409, f"Run {run_id} is {run['status']}")
+    return run
+
+
+def started_by(conn: sqlite3.Connection, run_id: str) -> list[sqlite3.Row]:
+    """Return the claims a run has started, whatever they became."""
+    return conn.execute(
+        "SELECT claim_id, status FROM claims WHERE run_id = ? ORDER BY claim_id",
+        (run_id,),
+    ).fetchall()
+
+
+def missed_claims(conn: sqlite3.Connection, run: sqlite3.Row) -> list[str]:
+    """Return the waiting claims a run still has to work within its cap."""
+    started = started_by(conn, run["run_id"])
+    retries = [c["claim_id"] for c in started if c["status"] == "waiting"]
+    room = run["max_claims"] - len(started)
+    others = conn.execute(
+        "SELECT claim_id FROM claims WHERE status = 'waiting'"
+        " AND run_id IS NOT ? ORDER BY claim_id LIMIT ?",
+        (run["run_id"], max(room, 0)),
+    ).fetchall()
+    return retries + [c["claim_id"] for c in others]
 
 
 @app.post("/api/claims/{claim_id}/start", operation_id="start_claim")
 def start_claim(claim_id: str, request: Start, conn: Db) -> dict[str, str]:
     """Start work on a waiting claim for a run and return the thread id."""
+    run = running(conn, request.run_id)
+    started = started_by(conn, request.run_id)
+    retry = claim_id in [c["claim_id"] for c in started]
+    if not retry and len(started) >= run["max_claims"]:
+        raise HTTPException(
+            409, f"The run has already started its {run['max_claims']} claims"
+        )
     return {"thread_id": start(conn, claim_id, request.run_id)}
 
 
@@ -396,3 +470,75 @@ def run_agent(claim_id: str, tasks: BackgroundTasks, conn: Db) -> dict[str, str]
     conn.commit()
     tasks.add_task(work_claim, claim_id, thread_id)
     return {"status": "in_progress", "thread_id": thread_id}
+
+
+def run_json(run: sqlite3.Row) -> dict[str, Any]:
+    """Return a run as the API shows it."""
+    return {**dict(run), "todos": json.loads(run["todos"])}
+
+
+def work_queue(run_id: str) -> None:
+    """Run the agent on the queue; stop the run if it ends without finishing."""
+    try:
+        claim_agent.run_queue(run_id)
+        problem = "The agent ended the run without finishing it."
+    except Exception as error:
+        problem = f"The run stopped with an error: {error}"
+    conn = db.connect()
+    with conn:
+        conn.execute(
+            "UPDATE runs SET status = 'stopped', problem = ?, finished_at = ?"
+            " WHERE run_id = ? AND status = 'running'",
+            (problem, now(), run_id),
+        )
+    conn.close()
+
+
+@app.post("/api/runs", operation_id="start_run")
+def start_run(request: NewRun, tasks: BackgroundTasks, conn: Db) -> dict[str, Any]:
+    """Start the UnderCover Agent on the queue, working at most max_claims claims."""
+    if conn.execute("SELECT 1 FROM runs WHERE status = 'running'").fetchone():
+        raise HTTPException(409, "A run is already running")
+    run_id = uuid4().hex
+    conn.execute(
+        "INSERT INTO runs (run_id, max_claims, status, todos, started_at)"
+        " VALUES (?, ?, 'running', '[]', ?)",
+        (run_id, request.max_claims, now()),
+    )
+    conn.commit()
+    tasks.add_task(work_queue, run_id)
+    return run_json(run_row(conn, run_id))
+
+
+@app.get("/api/runs/latest", operation_id="get_latest_run")
+def get_latest_run(conn: Db) -> dict[str, Any] | None:
+    """Get the latest run with its to-do list and summary, or null if none."""
+    run = conn.execute(
+        "SELECT * FROM runs ORDER BY started_at DESC, rowid DESC LIMIT 1"
+    ).fetchone()
+    return run_json(run) if run else None
+
+
+@app.put("/api/runs/{run_id}/todos", operation_id="write_todos")
+def write_todos(run_id: str, request: Todos, conn: Db) -> dict[str, str]:
+    """Replace the agent's to-do list for a running run."""
+    running(conn, run_id)
+    todos = json.dumps([todo.model_dump() for todo in request.todos])
+    conn.execute("UPDATE runs SET todos = ? WHERE run_id = ?", (todos, run_id))
+    return {"status": "saved"}
+
+
+@app.post("/api/runs/{run_id}/finish", operation_id="finish_run")
+def finish_run(run_id: str, request: Finish, conn: Db) -> dict[str, str]:
+    """Finish a run with a summary; refused while claims within its cap are missed."""
+    missed = missed_claims(conn, running(conn, run_id))
+    if missed:
+        raise HTTPException(
+            409, f"Claims still to work within the cap: {', '.join(missed)}"
+        )
+    conn.execute(
+        "UPDATE runs SET status = 'finished', summary = ?, finished_at = ?"
+        " WHERE run_id = ?",
+        (request.summary, now(), run_id),
+    )
+    return {"status": "finished"}
